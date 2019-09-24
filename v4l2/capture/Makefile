@@ -3,9 +3,10 @@ OBJS := v4l2grab_Anysize.o
 CC = gcc
 RM = rm -rf
 
+LDFLAGS += -ljpeg
 
 Anys:$(OBJS)
-	$(CC) $< -o $@
+	$(CC) $^ -o $@ $(LDFLAGS)
 
 %.o:%.c
 	$(CC) -c $< -o $@

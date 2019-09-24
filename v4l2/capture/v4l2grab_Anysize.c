@@ -8,10 +8,9 @@
 #include <sys/mman.h>
 #include <linux/types.h>
 #include <linux/videodev2.h>
- 
+#include <jpeglib.h>
 #include "v4l2grab.h"
  
-
 
 #define FILE_VIDEO 			"/dev/video0"
 #define BMP      			"./image_bmp.bmp"
@@ -19,8 +18,8 @@
 #define  IMAGEWIDTH    800
 #define  IMAGEHEIGHT   600
 
-static   int      fd;
-static   struct   v4l2_capability   cap;
+static int fd;
+static struct v4l2_capability cap;
 struct v4l2_fmtdesc fmtdesc;
 struct v4l2_format fmt,fmtack;
 struct v4l2_streamparm setfps;  
@@ -36,6 +35,8 @@ struct buffer
 	unsigned int length;
 } * buffers;
  
+
+
 int init_v4l2(void)
 {
 	int i;
@@ -56,11 +57,11 @@ int init_v4l2(void)
 	}
 	else
 	{
-     	printf("driver:\t\t%s\n",cap.driver);
-     	printf("card:\t\t%s\n",cap.card);
-     	printf("bus_info:\t%s\n",cap.bus_info);
-     	printf("version:\t%d\n",cap.version);
-     	printf("capabilities:\t%x\n",cap.capabilities);
+     	printf("driver:\t\t%s\n", cap.driver);
+     	printf("card:\t\t%s\n", cap.card);
+     	printf("bus_info:\t%s\n", cap.bus_info);
+     	printf("version:\t%d\n", cap.version);
+     	printf("capabilities:\t%x\n", cap.capabilities);
      	
      	if ((cap.capabilities & V4L2_CAP_VIDEO_CAPTURE) == V4L2_CAP_VIDEO_CAPTURE) 
      	{
@@ -74,21 +75,21 @@ int init_v4l2(void)
 	} 
 	
 	//emu all support fmt
-	fmtdesc.index=0;
-	fmtdesc.type=V4L2_BUF_TYPE_VIDEO_CAPTURE;
+	fmtdesc.index = 0;
+	fmtdesc.type  = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	printf("Support format:\n");
-	while(ioctl(fd,VIDIOC_ENUM_FMT,&fmtdesc)!=-1)
+	while(ioctl(fd, VIDIOC_ENUM_FMT, &fmtdesc)!=-1)
 	{
 		printf("\t%d.%s\n",fmtdesc.index+1,fmtdesc.description);
 		fmtdesc.index++;
 	}
 	
     //set fmt
-    fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;
-	fmt.fmt.pix.height = IMAGEHEIGHT;
-	fmt.fmt.pix.width = IMAGEWIDTH;
-	fmt.fmt.pix.field = V4L2_FIELD_INTERLACED;
+	fmt.fmt.pix.height      = IMAGEHEIGHT;
+	fmt.fmt.pix.width       = IMAGEWIDTH;
+	fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;
 	
 	if(ioctl(fd, VIDIOC_S_FMT, &fmt) == -1)
 	{
@@ -130,7 +131,7 @@ int v4l2_grab(void)
 	req.count  = 4;
 	req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
-	if(ioctl(fd,VIDIOC_REQBUFS,&req) == -1)
+	if(ioctl(fd, VIDIOC_REQBUFS, &req) == -1)
 	{
 		printf("request for buffers error\n");
 		return -1;
@@ -158,7 +159,9 @@ int v4l2_grab(void)
 
 		buffers[n_buffers].length = buf.length;
 		//map
-		buffers[n_buffers].start = mmap(NULL,buf.length,PROT_READ |PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
+		buffers[n_buffers].start = mmap(NULL,buf.length,
+						PROT_READ | PROT_WRITE, MAP_SHARED, fd, buf.m.offset);
+						
 		if (buffers[n_buffers].start == MAP_FAILED)
 		{
 			printf("buffer map error\n");
@@ -169,16 +172,24 @@ int v4l2_grab(void)
 	//queue
 	for (n_buffers = 0; n_buffers < req.count; n_buffers++)
 	{
+		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.memory = V4L2_MEMORY_MMAP;
 		buf.index = n_buffers;
 		ioctl(fd, VIDIOC_QBUF, &buf);
 	} 
 	
+
+	//start
 	type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	ioctl (fd, VIDIOC_STREAMON, &type);
 	
+
+	//end, because we just need a frame
 	ioctl(fd, VIDIOC_DQBUF, &buf);
 
-        printf("grab yuyv OK\n");
+    printf("grab yuyv OK\r\n");
+
+
 	return(TRUE);
 }
 
@@ -346,8 +357,6 @@ int yuyv_2_rgb888(void)
 }
 
 
-
-
 int close_v4l2(void)
 {
      if(fd != -1) 
@@ -357,6 +366,60 @@ int close_v4l2(void)
      }
      return (FALSE);
 }
+
+
+int rgb2jpeg(const char * filename, unsigned char* rgbData, int image_width, int image_height,int quality)  
+{  
+    struct jpeg_compress_struct jpeg;  //identify a compress object
+    struct jpeg_error_mgr jerr;  //error information
+ 
+    jpeg.err = jpeg_std_error(&jerr);  
+    jpeg_create_compress(&jpeg);  //init compress object
+ 
+    FILE* pFile = fopen(filename, "wb");  
+    if( !pFile )  
+		return 0;
+
+    jpeg_stdio_dest(&jpeg, pFile);  
+ 
+    //compress param set,i just did a simple param set
+    jpeg.client_data      = (void*)&pFile;
+    jpeg.image_width      = image_width;  
+    jpeg.image_height     = image_height;  
+    jpeg.input_components = 3;  
+    jpeg.in_color_space   = JCS_RGB;   
+    jpeg_set_defaults(&jpeg);   
+    //// 指定亮度及色度质量  
+    jpeg.q_scale_factor[0] = jpeg_quality_scaling(100);  
+    jpeg.q_scale_factor[1] = jpeg_quality_scaling(100);  
+    //// 图像采样率，默认为2 * 2  
+    jpeg.comp_info[0].v_samp_factor = 2;  
+    jpeg.comp_info[0].h_samp_factor = 2;  
+    //// set jpeg compress quality  
+    jpeg_set_quality(&jpeg, quality, TRUE);  //100 is the highest
+ 
+    //start compress
+    jpeg_start_compress(&jpeg, TRUE);  
+ 
+    JSAMPROW row_pointer[1];  
+ 
+    //from up to down ,set every pixel
+    for(unsigned int i = 0; i < jpeg.image_height; i++ )  
+    {
+        row_pointer[0] = rgbData + i * jpeg.image_width * 3;  
+        jpeg_write_scanlines(&jpeg, row_pointer, 1);  
+    }  
+
+    //stop compress
+    jpeg_finish_compress(&jpeg);  
+    fclose( pFile );  
+    pFile = NULL;  
+    jpeg_destroy_compress(&jpeg);  
+    return 0;  
+}
+
+
+
 
 
 int main(void)
@@ -453,6 +516,9 @@ int main(void)
     
     //yuyv_2_rgb888();
 	convert_yuv_to_rgb_buffer(buffers[0].start, frame_buffer, IMAGEWIDTH, IMAGEHEIGHT);
+
+	rgb2jpeg("./myself.jpeg", frame_buffer, IMAGEWIDTH, IMAGEHEIGHT, 100);
+
     fwrite(&bf, 14, 1, fp1);
     fwrite(&bi, 40, 1, fp1);    
     fwrite(frame_buffer, bi.biSizeImage, 1, fp1);

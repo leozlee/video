@@ -84,6 +84,9 @@ int init_v4l2(void)
 		printf("Unable to set format\n");
 		return FALSE;
 	} 	
+
+
+	//here we read again to check settings
 	if(ioctl(fd, VIDIOC_G_FMT, &fmt) == -1)
 	{
 		printf("Unable to get format\n");
@@ -101,12 +104,14 @@ int init_v4l2(void)
      	printf("pix.width:\t\t%d\n", fmt.fmt.pix.width);
      	printf("pix.field:\t\t%d\n", fmt.fmt.pix.field);
 	}
+
+
 	//set fps
 	setfps.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	setfps.parm.capture.timeperframe.numerator   = 10;
 	setfps.parm.capture.timeperframe.denominator = 10;
 	
-	printf("init %s \t[OK]\n",FILE_VIDEO);
+	printf("init %s \t[OK]\n", FILE_VIDEO);
 	    
 	return TRUE;
 }
@@ -119,14 +124,15 @@ int v4l2_grab(void)
 	req.count  = 4;
 	req.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	req.memory = V4L2_MEMORY_MMAP;
-	if(ioctl(fd,VIDIOC_REQBUFS,&req) == -1)
+
+	if(ioctl(fd, VIDIOC_REQBUFS, &req) == -1)
 	{
 		printf("request for buffers error\n");
 		return -1;
 	}
 
 	//mmap for buffers
-	buffers = (struct buffer *)malloc(req.count*sizeof (*buffers));
+	buffers = (struct buffer *)malloc(req.count * sizeof (*buffers));
 	if (!buffers) 
 	{
 		printf ("Out of memory\n");
@@ -135,9 +141,9 @@ int v4l2_grab(void)
 	
 	for (n_buffers = 0; n_buffers < req.count; n_buffers++) 
 	{
-		buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+		buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 		buf.memory = V4L2_MEMORY_MMAP;
-		buf.index = n_buffers;
+		buf.index  = n_buffers;
 		//query buffers
 		if (ioctl (fd, VIDIOC_QUERYBUF, &buf) == -1)
 		{

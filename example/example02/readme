@@ -1,0 +1,4 @@
+use v4l2 to capture, use sdl2 to play
+This project doesn`t save any file
+Just capture from camera and display
+

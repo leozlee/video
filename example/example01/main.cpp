@@ -51,7 +51,6 @@ int main(void)
     fclose(fp1);
     close_v4l2();
 
-	
     //Load media
     if(!loadMedia(BMPFile))
     {
@@ -63,7 +62,7 @@ int main(void)
     SDL_BlitSurface( gHelloWorld, NULL, gScreenSurface, NULL );
     
     //Update the surface
-    SDL_UpdateWindowSurface( gWindow );
+    SDL_UpdateWindowSurface(gWindow);
 
     //Wait two seconds
     //SDL_Delay( 2000 );
@@ -71,6 +70,6 @@ int main(void)
     
 	//Free resources and close SDL
 	sdl_close();
-    
+
     return(TRUE);
 }
