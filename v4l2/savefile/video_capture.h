@@ -20,7 +20,8 @@ struct buffer
 };
 
 void init_video_capture();
-char video_capture(unsigned char* dst);
+//char video_capture(unsigned char* dst);
+char video_capture(FILE *fp);
 void free_video_capture();
 
 #endif /* VIDEO_CAPTURE_H_ */

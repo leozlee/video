@@ -2,6 +2,11 @@
  *
  * This software encode YUV data to H.264 bitstream.
  * It's the simplest encoder example based on libx264.
+ * 
+ * x264 can only use some kinds of format, so if we need to convert yuv422 to yuv420p
+ * 
+ * 
+ * 
  */
 #include <stdio.h>
 #include <stdlib.h>
@@ -11,7 +16,6 @@
 #define WIDTH	640
 #define HEIGHT	360
 
-
 int main(int argc, char** argv)
 {
 	int ret;
@@ -19,15 +23,13 @@ int main(int argc, char** argv)
 	int i,j;
 
 	//FILE* fp_src  = fopen("../cuc_ieschool_640x360_yuv444p.yuv", "rb");
-	FILE* fp_src  = fopen("./cuc_ieschool_640x360_yuv420p.yuv", "rb");
+	FILE* fp_src = fopen("./cuc_ieschool_640x360_yuv420p.yuv", "rb");
 	FILE* fp_dst = fopen("cuc_ieschool.h264", "wb");
 	
 	//Encode 50 frame
 	//if set 0, encode all frame
 	int frame_num = 50;
 	int csp       = X264_CSP_I420;
-	int width     = WIDTH;
-	int height    = HEIGHT;
 
 	int iNal          = 0;
 	x264_nal_t* pNals = NULL;
@@ -45,8 +47,8 @@ int main(int argc, char** argv)
 	}
 
 	x264_param_default(pParam);
-	pParam->i_width   = width; 
-	pParam->i_height  = height;
+	pParam->i_width   = WIDTH; 
+	pParam->i_height  = HEIGHT;
 	/*
 	//Param
 	pParam->i_log_level    = X264_LOG_DEBUG;
@@ -70,23 +72,24 @@ int main(int argc, char** argv)
 	x264_param_apply_profile(pParam, x264_profile_names[5]);
 	
 	pHandle = x264_encoder_open(pParam);
+
 	x264_picture_init(pPic_out);
 	x264_picture_alloc(pPic_in, csp, pParam->i_width, pParam->i_height);
 
 	//ret = x264_encoder_headers(pHandle, &pNals, &iNal);
-
 	y_size = pParam->i_width * pParam->i_height;
+
 	//detect frame number
-	if(frame_num==0)
+	if(frame_num == 0)
 	{
-		fseek(fp_src,0,SEEK_END);
+		fseek(fp_src, 0, SEEK_END);
 		switch(csp)
 		{
 			case X264_CSP_I444:
-				frame_num = ftell(fp_src)/(y_size*3);
+				frame_num = ftell(fp_src) / (y_size * 3);
 				break;
 			case X264_CSP_I420:
-				frame_num = ftell(fp_src)/(y_size*3/2);
+				frame_num = ftell(fp_src) / (y_size * 3/2);
 				break;
 			default:
 				printf("Colorspace Not Support.\n");
@@ -129,7 +132,7 @@ int main(int argc, char** argv)
 			return -1;
 		}
 
-		printf("Succeed encode frame: %5d\n",i);
+		printf("Succeed encode frame: %5d\n", i);
 
 		for ( j = 0; j < iNal; ++j)
 		{
@@ -154,6 +157,9 @@ int main(int argc, char** argv)
 		}
 		i++;
 	}
+
+
+
 
 	x264_picture_clean(pPic_in);
 	x264_encoder_close(pHandle);

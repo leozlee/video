@@ -299,7 +299,7 @@ void init_video_capture()
 	start_capturing();
 }
 
-char video_capture(unsigned char* dst)
+char video_capture(FILE *fp)
 {
 	char key = 0;
 	FD_ZERO(&fds);
@@ -334,8 +334,11 @@ char video_capture(unsigned char* dst)
 			}
 		}
 
-		unsigned char* im_from_cam = (unsigned char*)buffers[buf_in_while_loop.index].start;
-        parse_im(im_from_cam, dst);
+		fwrite(buffers[buf_in_while_loop.index].start, IM_WIDTH * IM_HEIGHT * 2, 1 ,fp);
+
+		//unsigned char* im_from_cam = (unsigned char*)buffers[buf_in_while_loop.index].start;
+        //parse_im(im_from_cam, dst);
+		//dst = (unsigned char*)buffers[buf_in_while_loop.index].start;
 
 		/* queue-in buffer */
 		if(-1 == xioctl(fd, VIDIOC_QBUF, &buf_in_while_loop))

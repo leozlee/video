@@ -29,10 +29,12 @@ void compress_begin(Encoder *en, int width, int height)
 	en->param->i_fps_den         = 1;
 
 	x264_param_apply_profile(en->param, x264_profile_names[0]); 
+
 	if ((en->handle = x264_encoder_open(en->param)) == 0) 
 	{
 		return;
 	}
+	
 	/* Create a new pic */
 	x264_picture_alloc(en->picture, X264_CSP_YUYV, en->param->i_width, en->param->i_height);
 	en->picture->img.i_csp      = X264_CSP_YUYV;
