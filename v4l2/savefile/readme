@@ -1,2 +1,7 @@
 How can I save a yuyv stream file?
+A:just write every frame to a file
 How to specify its length?
+specify frame numbers
+
+convert:
+ffmpeg -pix_fmt yuyv422 -s 800x600 -i myvideo.yuv -pix_fmt yuv420p b.yuv

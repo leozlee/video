@@ -13,8 +13,8 @@
 #include <stdint.h>
 #include <x264.h>
 
-#define WIDTH	640
-#define HEIGHT	360
+#define WIDTH	800
+#define HEIGHT	600
 
 int main(int argc, char** argv)
 {
@@ -23,7 +23,7 @@ int main(int argc, char** argv)
 	int i,j;
 
 	//FILE* fp_src  = fopen("../cuc_ieschool_640x360_yuv444p.yuv", "rb");
-	FILE* fp_src = fopen("./cuc_ieschool_640x360_yuv420p.yuv", "rb");
+	FILE* fp_src = fopen("./b.yuv", "rb");
 	FILE* fp_dst = fopen("cuc_ieschool.h264", "wb");
 	
 	//Encode 50 frame
