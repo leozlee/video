@@ -5,6 +5,15 @@
 #include <stdio.h>
 #include <x264.h>
 
+
+
+#define PIC_HEIGTH 600
+#define PIC_WIDTH  800	
+
+
+#define true  1
+#define false 0 
+
 typedef unsigned char uint8_t;
 
 typedef struct {
@@ -16,11 +25,10 @@ typedef struct {
 
 
 void compress_begin(Encoder *en, int width, int height);
+
 int compress_frame(Encoder *en, int type, uint8_t *in, uint8_t *out);
+
 void compress_end(Encoder *en);
-
-
-
 
 #endif
 

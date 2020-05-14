@@ -5,9 +5,10 @@
  * 
  * x264 can only use some kinds of format, so if we need to convert yuv422 to yuv420p
  * 
- * 
- * 
  */
+
+//該文件來源於雷神的blog，基於x264的編碼demo
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -24,7 +25,7 @@ int main(int argc, char** argv)
 
 	//FILE* fp_src  = fopen("../cuc_ieschool_640x360_yuv444p.yuv", "rb");
 	FILE* fp_src = fopen("./b.yuv", "rb");
-	FILE* fp_dst = fopen("cuc_ieschool.h264", "wb");
+	FILE* fp_dst = fopen("out.h264", "wb");
 	
 	//Encode 50 frame
 	//if set 0, encode all frame
@@ -105,6 +106,7 @@ int main(int argc, char** argv)
 		{
 			case X264_CSP_I444:
 			{
+				//fread 之後文件指針自動偏移對應的偏移量
 				fread(pPic_in->img.plane[0],y_size,1,fp_src);	//Y
 				fread(pPic_in->img.plane[1],y_size,1,fp_src);	//U
 				fread(pPic_in->img.plane[2],y_size,1,fp_src);	//V

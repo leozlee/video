@@ -96,6 +96,8 @@ int init_v4l2(void)
 		printf("Unable to set format\n");
 		return FALSE;
 	} 	
+
+	
 	if(ioctl(fd, VIDIOC_G_FMT, &fmt) == -1)
 	{
 		printf("Unable to get format\n");

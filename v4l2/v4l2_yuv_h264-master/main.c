@@ -15,18 +15,13 @@
 #include <assert.h>
 #include "h264encoder.h"
 
-
 #define FILE_VIDEO  "/dev/video0"
 
-#define IM_WIDTH 	800
-#define IM_HEIGHT 	600
 
 char h264_file_name[20] = "test.h264";
 Encoder en;
 uint8_t *h264_buf;
 FILE *h264_fp;
-
-
 
 typedef struct{
     void *start;
@@ -36,21 +31,19 @@ typedef struct{
 BUFTYPE *usr_buf;
 static unsigned int n_buffer = 0;
 
-
 void init_encoder(int width, int height)
 {
 	int test;
 	compress_begin(&en, width, height);
-	h264_buf = (uint8_t *) malloc(sizeof(uint8_t) * width * height * 2);	
+	//x264只支持yuv420p的格式，所以這裏的大小是固定的
+	h264_buf = (uint8_t *) malloc(sizeof(uint8_t) * width * height * 1.5);	
+	//test = sizeof(uint8_t);
+	//printf("sizeof(uint8_t) = %d\n",test);
 }
 
-void init_file(void) 
+void init_file() 
 {
 	h264_fp = fopen(h264_file_name, "wa+");
-	if(h264_fp == NULL)
-	{
-		printf("open h264 file error\r\n");
-	}
 }
 
 void close_encoder() 
@@ -66,9 +59,9 @@ void close_file()
 
 void encode_frame(uint8_t *yuv_frame, size_t yuv_length) 
 {
-	int h264_length = 0;
+	int h264_length  = 0;
 	static int count = 0;
-	h264_length = compress_frame(&en, -1, yuv_frame, h264_buf);
+	h264_length      = compress_frame(&en, -1, yuv_frame, h264_buf);
 	if (h264_length > 0)
 	{	
 		if(fwrite(h264_buf, h264_length, 1, h264_fp)>0)
@@ -95,7 +88,7 @@ int init_mmap(int fd)
 	reqbufs.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;    
 	reqbufs.memory = V4L2_MEMORY_MMAP;				
 
-	if(-1 == ioctl(fd, VIDIOC_REQBUFS, &reqbufs))
+	if(-1 == ioctl(fd,VIDIOC_REQBUFS,&reqbufs))
 	{
 		perror("Fail to ioctl 'VIDIOC_REQBUFS'");
 		exit(EXIT_FAILURE);
@@ -129,9 +122,10 @@ int init_mmap(int fd)
 		}
 
 		usr_buf[n_buffer].length = buf.length;
-		usr_buf[n_buffer].start = (char *)mmap(NULL,buf.length,
-									PROT_READ | PROT_WRITE,MAP_SHARED, 
-									fd,buf.m.offset);
+		usr_buf[n_buffer].start = (char *)mmap(NULL, buf.length, 
+							PROT_READ | PROT_WRITE,
+							MAP_SHARED, 
+							fd,buf.m.offset);
 
 		if(MAP_FAILED == usr_buf[n_buffer].start)
 		{
@@ -166,10 +160,10 @@ int open_camera(void)
 
 int init_camera(int fd)
 {
-	struct v4l2_capability 	cap;		/* decive fuction, such as video input */
-	struct v4l2_format 		tv_fmt;		/* frame format */  
-	struct v4l2_fmtdesc 	fmtdesc;  	/* detail control value */
-	struct v4l2_control 	ctrl;
+	struct v4l2_capability cap;		/* decive fuction, such as video input */
+	struct v4l2_format 	tv_fmt;		/* frame format */  
+	struct v4l2_fmtdesc fmtdesc;  	/* detail control value */
+	struct v4l2_control ctrl;
 	int ret;
 	
 	memset(&fmtdesc, 0, sizeof(fmtdesc));
@@ -177,7 +171,7 @@ int init_camera(int fd)
 	fmtdesc.type  = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 
 	/* check video decive driver capability */
-	if(ret=ioctl(fd, VIDIOC_QUERYCAP, &cap)<0)
+	if(ret = ioctl(fd, VIDIOC_QUERYCAP, &cap)<0)
 	{
 		fprintf(stderr, "fail to ioctl VIDEO_QUERYCAP \n");
 		exit(EXIT_FAILURE);
@@ -203,22 +197,19 @@ int init_camera(int fd)
 #if 1
 	/*show all the support format*/
 	printf("\n");
-	while(ioctl(fd,VIDIOC_ENUM_FMT,&fmtdesc) != -1)
+	while(ioctl(fd,VIDIOC_ENUM_FMT,&fmtdesc)!=-1)
 	{	
 		printf("support device %d.%s\n",fmtdesc.index+1,fmtdesc.description);
 		fmtdesc.index++;
 	}
 	printf("\n");
 #endif
-
-
 	/*set the form of camera capture data*/
-	tv_fmt.type           	   = V4L2_BUF_TYPE_VIDEO_CAPTURE;   /*v4l2_buf_typea,camera must use V4L2_BUF_TYPE_VIDEO_CAPTURE*/
-	tv_fmt.fmt.pix.width       = IM_WIDTH;
-	tv_fmt.fmt.pix.height      = IM_HEIGHT;
-	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;				/*V4L2_PIX_FMT_YYUV*/
-	tv_fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;   		/*V4L2_FIELD_NONE*/
-
+	tv_fmt.type                = V4L2_BUF_TYPE_VIDEO_CAPTURE;      /*v4l2_buf_typea,camera must use V4L2_BUF_TYPE_VIDEO_CAPTURE*/
+	tv_fmt.fmt.pix.width       = PIC_WIDTH;
+	tv_fmt.fmt.pix.height      = PIC_HEIGTH;
+	tv_fmt.fmt.pix.pixelformat = V4L2_PIX_FMT_YUYV;		
+	tv_fmt.fmt.pix.field       = V4L2_FIELD_INTERLACED;   	/*V4L2_FIELD_NONE*/
 	if (ioctl(fd, VIDIOC_S_FMT, &tv_fmt)< 0) 
 	{
 		fprintf(stderr,"VIDIOC_S_FMT set err\n");
@@ -226,15 +217,10 @@ int init_camera(int fd)
 		close(fd);
 	}
 
-
-	//U should read again to check settings
-
-
-		//here we read again to check settings
 	if(ioctl(fd, VIDIOC_G_FMT, &tv_fmt) == -1)
 	{
 		printf("Unable to get format\n");
-		return -1;
+		exit(-1);
 	} 
 	{
      	printf("fmt.type:\t\t%d\n", tv_fmt.type);
@@ -251,7 +237,7 @@ int init_camera(int fd)
 
 
 	init_mmap(fd);
-	init_encoder(IM_WIDTH, IM_HEIGHT);
+	init_encoder(PIC_WIDTH, PIC_HEIGTH);
 	init_file();
 }
 
@@ -308,6 +294,9 @@ int process_image(void *addr, int length)
 	return 0;
 }
 */
+
+
+
 int read_frame(int fd)
 {
 	struct v4l2_buffer buf;
@@ -316,7 +305,6 @@ int read_frame(int fd)
 	buf.type   = V4L2_BUF_TYPE_VIDEO_CAPTURE;
 	buf.memory = V4L2_MEMORY_MMAP;
 	//put cache from queue
-
 	if(-1 == ioctl(fd, VIDIOC_DQBUF,&buf))
 	{
 		perror("Fail to ioctl 'VIDIOC_DQBUF'");
@@ -325,8 +313,8 @@ int read_frame(int fd)
 	assert(buf.index < n_buffer);
 
 	//process_image(usr_buf[buf.index].start, usr_buf[buf.index].length);
-	encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
 	
+	encode_frame(usr_buf[buf.index].start, usr_buf[buf.index].length);
 	if(-1 == ioctl(fd, VIDIOC_QBUF,&buf))
 	{
 		perror("Fail to ioctl 'VIDIOC_QBUF'");
@@ -351,7 +339,7 @@ int mainloop(int fd)
 			FD_SET(fd,&fds);
 
 			/*Timeout*/
-			tv.tv_sec  = 2;
+			tv.tv_sec = 2;
 			tv.tv_usec = 0;
 			r = select(fd + 1,&fds,NULL,NULL,&tv);
 			
@@ -411,8 +399,7 @@ void close_camera_device(int fd)
 
 void main(void)
 {
-	int fd;
-	fd = open_camera();
+	int fd = open_camera();
 	init_camera(fd);
 	start_capture(fd);
 	mainloop(fd);

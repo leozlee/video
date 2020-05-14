@@ -5,3 +5,6 @@ specify frame numbers
 
 convert:
 ffmpeg -pix_fmt yuyv422 -s 800x600 -i myvideo.yuv -pix_fmt yuv420p b.yuv
+
+play:
+ffplay -f rawvideo -video_size 800x600 b.yuv

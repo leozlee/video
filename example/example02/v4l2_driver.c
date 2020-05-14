@@ -15,7 +15,7 @@
 
 
 
-int IMAGE_WIDTH = 800;
+int IMAGE_WIDTH  = 800;
 int IMAGE_HEIGHT = 600;
 struct v4l2_ubuffer *v4l2_ubuffers;
 

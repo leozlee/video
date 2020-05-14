@@ -1,14 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <stdint.h>
 #include "h264encoder.h"
-
-
 
 void compress_begin(Encoder *en, int width, int height) 
 {
-
-	en->param = (x264_param_t *) malloc(sizeof(x264_param_t));
+	en->param   = (x264_param_t *) malloc(sizeof(x264_param_t));
 	en->picture = (x264_picture_t *) malloc(sizeof(x264_picture_t));
 	x264_param_default(en->param); //set default param
 	//en->param->rc.i_rc_method = X264_RC_CQP;
@@ -28,25 +26,30 @@ void compress_begin(Encoder *en, int width, int height)
 	en->param->i_fps_num         = 25; 
 	en->param->i_fps_den         = 1;
 
-	x264_param_apply_profile(en->param, x264_profile_names[1]); 
+	x264_param_apply_profile(en->param, x264_profile_names[0]); 
 	if ((en->handle = x264_encoder_open(en->param)) == 0) 
 	{
 		return;
 	}
 	/* Create a new pic */
-	x264_picture_alloc(en->picture, X264_CSP_YUYV, en->param->i_width, en->param->i_height);
-	en->picture->img.i_csp      = X264_CSP_YUYV;
+	x264_picture_alloc(en->picture, X264_CSP_I420, en->param->i_width, en->param->i_height);
+	en->picture->img.i_csp      = X264_CSP_I420;
 	en->picture->img.i_plane    = 3;
 }
+
+
+
+
+
 
 
 
 int compress_frame(Encoder *en, int type, uint8_t *in, uint8_t *out) 
 {
 	x264_picture_t pic_out;
-	int nNal       = -1;
-	int result     = 0;
-	int i          = 0;
+	int nNal    = -1;
+	int result  = 0;
+	int i       = 0;
 	uint8_t *p_out = out;
 
 	char *y = en->picture->img.plane[0];   
@@ -57,9 +60,51 @@ int compress_frame(Encoder *en, int type, uint8_t *in, uint8_t *out)
 	//int length =  en->param->i_width * en->param->i_height;
 	//y = 640*480 ; U = 640*480*0.25, V = 640*480*0.25; 
 
-	memcpy(y, in, 480000);
-	memcpy(u, in + 480000, 240000);
-	memcpy(v, in + 480000, 240000);
+    char y_index[PIC_WIDTH * PIC_HEIGTH]     = {0x00,};
+    char u_index[PIC_WIDTH * PIC_HEIGTH / 4] = {0x00,};
+    char v_index[PIC_WIDTH * PIC_HEIGTH / 4] = {0x00,};
+    char *y_d = y_index;
+    char *u_d = u_index;
+    char *v_d = v_index;
+ 	char flag = true;
+	 
+    for(int i = 0, j = 0; i < PIC_WIDTH * PIC_HEIGTH * 2; i += 2, j++)
+    {
+        *y_d++ = in[i];
+        if(flag)
+        {
+            if(i%4 == 0)
+            {
+                *u_d++ = in[i+1];
+            }
+        }
+        else
+        {
+            if(i%4 == 0)
+            {
+                *v_d++ = in[i+3];
+            }
+        }
+
+        if(j == PIC_WIDTH)
+        {
+            j = 0;
+            if(flag)
+            {
+                flag = false;
+            }
+            else
+            {
+                flag = true;
+            }
+        }
+    }
+
+
+
+	memcpy(y,y_index, PIC_WIDTH * PIC_HEIGTH);
+	memcpy(u,u_index, PIC_WIDTH * PIC_HEIGTH / 4);
+	memcpy(v,v_index, PIC_WIDTH * PIC_HEIGTH / 4);
 	
 	switch (type) 
 	{
@@ -77,13 +122,12 @@ int compress_frame(Encoder *en, int type, uint8_t *in, uint8_t *out)
 		break;
 	}
 
-	if (x264_encoder_encode(en->handle, &(en->nal), &nNal, en->picture, &pic_out) < 0) 
-	{
+	if (x264_encoder_encode(en->handle, &(en->nal), &nNal, en->picture,
+			&pic_out) < 0) {
 		return -1;
 	}
 
-	for (i = 0; i < nNal; i++) 
-	{
+	for (i = 0; i < nNal; i++) {
 		memcpy(p_out, en->nal[i].p_payload, en->nal[i].i_payload);   
 		p_out += en->nal[i].i_payload;								 
 		result += en->nal[i].i_payload;
